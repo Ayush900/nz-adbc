@@ -1,57 +1,42 @@
 name: build and release
-on: release
+on:
+  release:
+    types: [published]
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: prerequisite
       run: sudo apt-get install -y libkrb5-dev
     - name: submodule
       run: git submodule update --init --recursive
-    - name: make
-      run: make
-    - name: release
+    - name: make and publish
       run: |
-        set THIS_GITHUB_EVENT=$(cat $GITHUB_EVENT_PATH)
-        set RELEASE_UPLOAD_URL=$(echo $THIS_GITHUB_EVENT | jq -r .release.upload_url)
-        set RELEASE_UPLOAD_URL=${RELEASE_UPLOAD_URL/\{?name,label\}/}
-        set RELEASE_TAG_NAME=$(echo $THIS_GITHUB_EVENT | jq -r .release.tag_name)
-        set PROJECT_NAME=$(basename $GITHUB_REPOSITORY)
-        NAME="adbc_driver_netezza.tgz"
-        curl \
-          --tlsv1.2 \
-          -X POST \
-          --data-binary WithMakeBuild/adbc_driver_netezza.tgz \
-          -H 'Content-Type: application/octet-stream' \
-          -H "Authorization: Bearer ${GITHUB_TOKEN}" \
-          "${RELEASE_UPLOAD_URL}?name=${NAME}"
+        make
+        gh release upload ${{github.event.release.tag_name}} WithMakeBuild/adbc_driver_netezza.tgz
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  build-python:
-    name: Build distribution 📦
-    runs-on: ubuntu-latest
-    needs: build  # Ensure this job runs after the build job
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Upload distribution artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: python-package-distributions
-          path: src/python/dist/
+    - name: Upload distributions
+      uses: actions/upload-artifact@v4
+      with:
+        name: release-dists
+        path: src/python/dist
 
   publish-to-pypi:
-    name: Publish to PyPI
-    if: startsWith(github.ref, 'refs/tags/')  # Only run this when a tag is pushed (i.e., a release)
+    name: Publish Python distribution to PyPI
     needs:
-      - build-python  # This job depends on the 'build-python' job
+    - build
     runs-on: ubuntu-latest
-    environment:
-      name: pypi
-    permissions:
-      id-token: write  # Required to authenticate with GitHub actions
 
+    environment:
+      name: nz-adbc-release
+      # url: https://pypi.org/p/YOURPROJECT
+
+    permissions:
+      id-token: write  # IMPORTANT: mandatory for trusted publishing
+    
     steps:
       - name: Download distribution artifacts
         uses: actions/download-artifact@v4
@@ -64,4 +49,3 @@ jobs:
         with:
           username: ${{ secrets.PYPI_USERNAME }}
           password: ${{ secrets.PYPI_PASSWORD }}
-
