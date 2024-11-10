@@ -6,14 +6,13 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, rhel-9]  # Use a self-hosted runner with a label "rhel-9"
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install prerequisites
+      - name: Install prerequisites on RHEL 9
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libkrb5-dev python3-pip python3-venv
+          sudo dnf install -y libkrb5-devel python3-pip python3-venv make
 
       - name: Update submodules
         run: git submodule update --init --recursive
