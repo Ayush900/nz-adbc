@@ -24,15 +24,14 @@ jobs:
 
       - name: Install the Python package from the .whl file
         run: |
-          
           pip install src/python/dist/adbc_driver_netezza*.whl
+          pip install pyarrow
 
       - name: Run the test
         run: |
-          python -c "
-            from adbc_driver_netezza import StatementOptions, dbapi
-
-            uri = 'netezza://admin:password@am9001.fyre.ibm.com:5480/system'
-            with dbapi.connect(uri) as conn:
-                print(conn)
+          python3 -c "
+from adbc_driver_netezza import StatementOptions, dbapi
+uri = 'netezza://admin:password@am9001.fyre.ibm.com:5480/system'
+with dbapi.connect(uri) as conn:
+    print(conn)
           "
