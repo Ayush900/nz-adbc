@@ -1,30 +1,38 @@
 name: build and release
-on: release
+
+on:
+  release:
+    types: [published]  # Trigger on release published event
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - name: prerequisite
-      run: sudo apt-get install -y libkrb5-dev
-    - name: submodule
-      run: git submodule update --init --recursive
-    - name: make
-      run: make
-    - name: release
-      run: |
-        set THIS_GITHUB_EVENT=$(cat $GITHUB_EVENT_PATH)
-        set RELEASE_UPLOAD_URL=$(echo $THIS_GITHUB_EVENT | jq -r .release.upload_url)
-        set RELEASE_UPLOAD_URL=${RELEASE_UPLOAD_URL/\{?name,label\}/}
-        set RELEASE_TAG_NAME=$(echo $THIS_GITHUB_EVENT | jq -r .release.tag_name)
-        set PROJECT_NAME=$(basename $GITHUB_REPOSITORY)
-        NAME="adbc_driver_netezza.tgz"
-        curl \
-          --tlsv1.2 \
-          -X POST \
-          --data-binary WithMakeBuild/adbc_driver_netezza.tgz \
-          -H 'Content-Type: application/octet-stream' \
-          -H "Authorization: Bearer ${GITHUB_TOKEN}" \
-          "${RELEASE_UPLOAD_URL}?name=${NAME}"
+      - uses: actions/checkout@v4
 
-    
+      - name: Install prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libkrb5-dev python3-pip python3-venv
+
+      - name: Update submodules
+        run: git submodule update --init --recursive
+
+      - name: Build the package
+        run: |
+          make
+
+      - name: Install the Python package from the .whl file
+        run: |
+          
+          pip install src/python/dist/adbc_driver_netezza*.whl
+
+      - name: Run the test
+        run: |
+          python -c "
+            from adbc_driver_netezza import StatementOptions, dbapi
+
+            uri = 'netezza://admin:password@am9001.fyre.ibm.com:5480/system'
+            with dbapi.connect(uri) as conn:
+                print(conn)
+          "
