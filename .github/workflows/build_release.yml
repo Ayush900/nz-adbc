@@ -14,6 +14,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libkrb5-dev python3-pip python3-venv
+          export LD_LIBRARY_PATH=/home/runner/.local/lib/python3.10/site-packages/adbc_driver_netezza:$LD_LIBRARY_PATH
           openssl version
           
 
