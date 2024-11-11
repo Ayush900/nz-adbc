@@ -24,7 +24,6 @@ jobs:
 
       - name: Install the Python package from the .whl file
         run: |
-          python3 src/python/setup.py sdist bdist_wheel
           pip install src/python/dist/adbc_driver_netezza*.whl
           pip install pyarrow
 
