@@ -26,15 +26,13 @@ jobs:
 
       - name: Install the Python package from the .whl file
         run: |
-          export LD_LIBRARY_PATH=/home/runner/.local/lib/python3.10/site-packages/adbc_driver_netezza:$LD_LIBRARY_PATH
           echo "-=-=-=-=-=--=-==--=-=-=-=-====--==-==-"
           find . -name libadbc_driver_netezza*
           ldd ./WithMakeBuild/libadbc_driver_netezza.so
-          ldd /home/runner/.local/lib/python3.10/site-packages/adbc_driver_netezza/libadbc_driver_netezza.so
+          export LD_LIBRARY_PATH=$(pwd)/WithMakeBuild/adbc_driver_netezza/lib64:$LD_LIBRARY_PATH
+          echo "DONE!" 
+          ldd ./WithMakeBuild/libadbc_driver_netezza.so
           echo "-=-=-=-=-=--=-==--=-=-=-=-====--==-==-"
-          echo "***************************************"
-          find . -name libkrb5*
-          echo "***************************************"
           pip install src/python/dist/adbc_driver_netezza*.whl
           pip install pyarrow
 
