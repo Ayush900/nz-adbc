@@ -15,6 +15,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libkrb5-dev python3-pip python3-venv
           openssl version
+          find . -name libadbc_driver_netezza*
 
       - name: Update submodules
         run: git submodule update --init --recursive
