@@ -28,6 +28,9 @@ jobs:
         run: |
           echo "-=-=-=-=-=--=-==--=-=-=-=-====--==-==-"
           find . -name libadbc_driver_netezza*
+          ldd ./WithMakeBuild/libadbc_driver_netezza.so
+          ldd ./WithMakeBuild/adbc_driver_netezza/lib64/libadbc_driver_netezza.so
+          ldd ./src/python/adbc_driver_netezza/libadbc_driver_netezza.so
           echo "-=-=-=-=-=--=-==--=-=-=-=-====--==-==-"
           pip install src/python/dist/adbc_driver_netezza*.whl
           pip install pyarrow
