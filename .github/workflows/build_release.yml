@@ -6,39 +6,23 @@ on:
 
 jobs:
   build:
-    runs-on: rocky-linux-8
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install prerequisites
+      - name: setup docker
+        run: docker pull registry.access.redhat.com/ubi8/ubi:8.1
+      
+      - name: run docker
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libkrb5-dev python3-pip python3-venv
-          openssl version
-          
-
-      - name: Update submodules
-        run: git submodule update --init --recursive
-
-      - name: Build the package
-        run: |
-          make
-
-      - name: Install the Python package from the .whl file
-        run: |
-          echo "-=-=-=-=-=--=-==--=-=-=-=-====--==-==-"
-          find . -name libadbc_driver_netezza*
-          ldd ./WithMakeBuild/libadbc_driver_netezza.so
-          export LD_LIBRARY_PATH=$(pwd)/WithMakeBuild/adbc_driver_netezza/lib64:$LD_LIBRARY_PATH
-          echo "DONE!" 
-          ldd ./WithMakeBuild/libadbc_driver_netezza.so
-          echo "-=-=-=-=-=--=-==--=-=-=-=-====--==-==-"
-          pip install src/python/dist/adbc_driver_netezza*.whl
-          pip install pyarrow
-
-      - name: Run the test
-        run: |
-          python3 -c 'from adbc_driver_netezza import StatementOptions, dbapi
-          uri = "netezza://admin:password@am9001.fyre.ibm.com:5480/system"
-          with dbapi.connect(uri) as conn:
+            docker run -rm -v $PWD:/workspace -w /workspace registry.access.redhat.com/ubi8/ubi:latest bash -c " 
+            yum install -y libkrb5-devel python3-pip python3-venv python3-wheel
+            git submodule update --init --recursive
+            make
+            pip install src/python/dist/adbc_driver_netezza*.whl
+            pip install pyarrow
+            python3 -c 'from adbc_driver_netezza import StatementOptions, dbapi
+            uri = \"netezza://admin:password@am9001.fyre.ibm.com:5480/system\"
+            with dbapi.connect(uri) as conn:
               print(conn)'
+            "
