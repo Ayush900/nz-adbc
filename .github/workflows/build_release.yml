@@ -15,7 +15,7 @@ jobs:
       
       - name: run docker
         run: |
-            docker run -rm -v $PWD:/workspace -w /workspace registry.access.redhat.com/ubi8/ubi:latest bash -c " 
+            docker run --rm -v $PWD:/workspace -w /workspace registry.access.redhat.com/ubi8/ubi:latest bash -c " 
             yum install -y libkrb5-devel python3-pip python3-venv python3-wheel
             git submodule update --init --recursive
             make
