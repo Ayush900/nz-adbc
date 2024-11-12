@@ -6,12 +6,14 @@ on:
 
 jobs:
   build:
-    runs-on: [self-hosted, linux]
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v4
 
       - name: Install dependencies
-        run: sudo yum install openssl-devel krb5-devel compat-openssl11 -y
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y openssl libkrb5-dev python3-pip python3-venv python3-wheel
 
       - name: Update submodules
         run: git submodule update --init --recursive
