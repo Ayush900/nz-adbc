@@ -11,7 +11,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install dependencies
-        run: sudo yum install openssl-devel krb5-devel compat-openssl11
+        run: sudo yum install openssl-devel krb5-devel compat-openssl11 -y
 
       - name: Update submodules
         run: git submodule update --init --recursive
