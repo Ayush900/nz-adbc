@@ -24,7 +24,7 @@
 # distribution is made.  The magic value "__use_git__" is interpreted by
 # _version.py.
 
-version = "0.0.3"
+version = "0.0.10"
 
 # These values are only set if the distribution was created with 'git archive'
 # NOTE: must add an export-subst to .gitattributes!
