@@ -16,14 +16,17 @@ jobs:
       - name: Update submodules
         run: git submodule update --init --recursive
 
-      - name: Build and publish release
+      - name: Build the package
         run: |
           make
-          gh release upload ${{ github.event.release.tag_name }} WithMakeBuild/adbc_driver_netezza.tgz
-          pip install twine
-          echo "Uploading distributions to PyPI..."
-          twine upload src/python/dist/*
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+      - name: Install the Python package from the .whl file
+        run: |
+          
+          pip install src/python/dist/adbc_driver_netezza*.whl
+          pip install pyarrow
+      - name: Run the test
+        run: |
+          python3 -c 'from adbc_driver_netezza import StatementOptions, dbapi
+          uri = "netezza://admin:password@am9001.fyre.ibm.com:5480/system"
+          with dbapi.connect(uri) as conn:
+              print(conn)'
