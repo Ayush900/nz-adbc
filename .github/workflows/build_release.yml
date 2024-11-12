@@ -10,6 +10,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install dependencies
+        run: dnf install openssl-devel krb5-devel compat-openssl11
+
       - name: Update submodules
         run: git submodule update --init --recursive
 
