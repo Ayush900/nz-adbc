@@ -16,7 +16,9 @@ jobs:
       - name: run docker
         run: |
             docker run --rm -v $PWD:/workspace -w /workspace registry.access.redhat.com/ubi8/ubi:latest bash -c " 
-            yum install -y libkrb5-devel python3-pip python3-venv python3-wheel
+            yum install -y epel-release
+            yum groupinstall -y 'Development Tools'
+            yum install -y krb5-devel compat-openssl11 python3-pip python3-venv python3-wheel git cmake gcc gcc-c++ openssl-devel
             git submodule update --init --recursive
             make
             pip install src/python/dist/adbc_driver_netezza*.whl
