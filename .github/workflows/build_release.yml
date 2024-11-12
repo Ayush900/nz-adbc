@@ -6,9 +6,16 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-20.04  # Use Ubuntu 20.04 runner
+
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v4  # Use v4 of actions/checkout
+
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'  # Set Python version to 3.9
 
       - name: Install dependencies
         run: |
@@ -21,11 +28,12 @@ jobs:
       - name: Build the package
         run: |
           make
+
       - name: Install the Python package from the .whl file
         run: |
-          
           pip install src/python/dist/adbc_driver_netezza*.whl
           pip install pyarrow
+
       - name: Run the test
         run: |
           python3 -c 'from adbc_driver_netezza import StatementOptions, dbapi
