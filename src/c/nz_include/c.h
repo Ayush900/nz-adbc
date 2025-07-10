@@ -786,7 +786,7 @@ extern int ExceptionalCondition(const char *conditionName,
           (ExceptionalCondition(CppAsString(condition), &(exception), NULL, __FILE__, __LINE__))))
 
 #ifndef USE_ASSERT_CHECKING
-# define Assert(condition)
+# define NZAssert(condition) # Verify the update once
 # define AssertMacro(condition) ((void) true)
 # define AssertArg(condition)
 # define AssertState(condition)
@@ -795,14 +795,14 @@ extern int ExceptionalCondition(const char *conditionName,
 #elif defined(FRONTEND)
 
 # include <assert.h>
-# define Assert(p)                         assert(p)
+# define NZAssert(p)                         assert(p)
 # define AssertMacro(p)                    ((void) assert(p))
 # define AssertArg(condition)              assert(condition)
 # define AssertState(condition)            assert(condition)
 # define AssertPointerAlignment(ptr, bndr) ((void) true)
 
 #else
-# define Assert(condition) Trap(!(condition), FailedAssertion)
+# define NZAssert(condition) Trap(!(condition), FailedAssertion)
 
 # define AssertMacro(condition) ((void) TrapMacro(!(condition), FailedAssertion))
 

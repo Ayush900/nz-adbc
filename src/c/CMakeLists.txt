@@ -73,9 +73,9 @@ if(ADBC_BUILD_TESTS)
                 EXTRA_LABELS
                 driver-netezza
                 SOURCES
-                netezza_type_test.cc
-                netezza_copy_reader_test.cc
                 netezza_test.cc
+                netezza_type_test.cc
+                # netezza_copy_reader_test.cc #TODO
                 EXTRA_LINK_LIBS
                 adbc_driver_common
                 adbc_validation

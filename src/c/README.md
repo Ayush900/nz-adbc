@@ -40,30 +40,13 @@ See [CONTRIBUTING.md](../../CONTRIBUTING.md) for details.
 
 ## Testing
 
-A running instance of PostgreSQL is required.  For example, using Docker:
-
-```shell
-$ docker run -it --rm \
-    -e POSTGRES_PASSWORD=password \
-    -e POSTGRES_DB=tempdb \
-    -p 5432:5432 \
-    postgres
-```
-
-Alternatively use the `docker compose` provided by ADBC to manage the test
-database container.
-
-```shell
-$ docker compose up postgres-test
-# When finished:
-# docker compose down postgres-test
-```
+A running instance of Netezza is required.
 
 Then, to run the tests, set the environment variable specifying the
-PostgreSQL URI before running tests:
+Netezza URI before running tests:
 
 ```shell
-$ export ADBC_NETEZZA_TEST_URI=netezza://localhost:5480/system?user=admin&password=password
+$ export ADBC_NETEZZA_TEST_URI=netezza://user:password@host:5480/dbname/schemaname/
 $ ctest
 ```
 
