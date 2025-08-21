@@ -1061,7 +1061,6 @@ AdbcStatusCode NetezzaStatement::CreateBulkTable(
       }
       *escaped_table += escaped;
       *escaped_table += " . ";
-      free(escaped);
     } else if (ingest_.temporary) {
       // OK to be redundant (CREATE TEMPORARY TABLE pg_temp.foo)
       *escaped_table += "pg_temp . ";
@@ -1072,7 +1071,6 @@ AdbcStatusCode NetezzaStatement::CreateBulkTable(
           // PQescapeIdentifier(conn, current_schema.c_str(), current_schema.size(), true);
       *escaped_table += escaped;
       *escaped_table += " . ";
-      free(escaped);
     }
 
     if (!ingest_.target.empty()) {
@@ -1084,7 +1082,6 @@ AdbcStatusCode NetezzaStatement::CreateBulkTable(
         return ADBC_STATUS_INTERNAL;
       }
       *escaped_table += escaped;
-      free(escaped);
     }
   }
 
@@ -1139,7 +1136,6 @@ AdbcStatusCode NetezzaStatement::CreateBulkTable(
     }
     create += escaped;
     *escaped_field_list += escaped;
-    free(escaped);
 
     switch (source_schema_fields[i].type) {
       case ArrowType::NANOARROW_TYPE_BOOL:
@@ -1163,7 +1159,7 @@ AdbcStatusCode NetezzaStatement::CreateBulkTable(
         break;
       case ArrowType::NANOARROW_TYPE_STRING:
       case ArrowType::NANOARROW_TYPE_LARGE_STRING:
-        create += " TEXT";
+        create += " VARCHAR (255)";
         break;
       case ArrowType::NANOARROW_TYPE_BINARY:
         create += " BYTEA";
@@ -1398,22 +1394,23 @@ AdbcStatusCode NetezzaStatement::ExecuteUpdateBulk(int64_t* rows_affected,
       error));
   RAISE_ADBC(bind_stream.SetParamTypes(*type_resolver_, error));
 
-  std::string query = "COPY ";
+  char* escaped_target_file_path = (char*) ingest_.target_file_path.c_str();
+  std::string query = "INSERT INTO ";
   query += escaped_table;
-  query += " (";
-  query += escaped_field_list;
-  query += ") FROM STDIN WITH (FORMAT binary)";
+  query += " SELECT * FROM EXTERNAL '";
+  query += escaped_target_file_path;
+  query += "' USING (REMOTESOURCE 'python' delim ',' MaxErrors 0 SkipRows 1)";
+
   PGresult* result = PQexec(connection_->conn(), query.c_str());
-  if (PQresultStatus(result) != PGRES_COPY_IN) {
+  if (PQresultStatus(result) != PGRES_COMMAND_OK) {
     AdbcStatusCode code =
-        SetError(error, result, "[libpq] COPY query failed: %s\nQuery was:%s",
+        SetError(error, result, "[libpq] Failed to insert data using external file: %s\nQuery was: %s",
                  PQerrorMessage(connection_->conn()), query.c_str());
     PQclear(result);
     return code;
   }
 
   PQclear(result);
-  RAISE_ADBC(bind_stream.ExecuteCopy(connection_->conn(), rows_affected, error));
   return ADBC_STATUS_OK;
 }
 
@@ -1455,6 +1452,8 @@ AdbcStatusCode NetezzaStatement::GetOption(const char* key, char* value, size_t*
     result = ingest_.target;
   } else if (std::strcmp(key, ADBC_INGEST_OPTION_TARGET_DB_SCHEMA) == 0) {
     result = ingest_.db_schema;
+  } else if (std::strcmp(key, ADBC_INGEST_OPTION_TARGET_FILE_PATH) == 0) {
+    result = ingest_.target_file_path;
   } else if (std::strcmp(key, ADBC_INGEST_OPTION_MODE) == 0) {
     switch (ingest_.mode) {
       case IngestMode::kCreate:
@@ -1537,6 +1536,7 @@ AdbcStatusCode NetezzaStatement::SetSqlQuery(const char* query,
                                               struct AdbcError* error) {
   ingest_.target.clear();
   ingest_.db_schema.clear();
+  ingest_.target_file_path.clear();
   query_ = query;
   prepared_ = false;
   return ADBC_STATUS_OK;
@@ -1591,6 +1591,10 @@ AdbcStatusCode NetezzaStatement::SetOption(const char* key, const char* value,
     }
 
     this->reader_.batch_size_hint_bytes_ = int_value;
+  } else if (std::strcmp(key, ADBC_INGEST_OPTION_TARGET_FILE_PATH) == 0) {
+      query_.clear();
+      ingest_.target_file_path = value;
+      prepared_ = false;
   } else {
     SetError(error, "[libpq] Unknown statement option '%s'", key);
     return ADBC_STATUS_NOT_IMPLEMENTED;
