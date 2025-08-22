@@ -78,6 +78,7 @@ __all__ = [
 # ----------------------------------------------------------
 # Globals
 
+ingest_supported_file_formats = ['csv', 'dat', 'tbl', 'out']
 apilevel = adbc_driver_manager.dbapi.apilevel
 threadsafety = adbc_driver_manager.dbapi.threadsafety
 # XXX: PostgreSQL doesn't fit any of the param styles
@@ -115,6 +116,26 @@ ADBC_NETEZZA_OPTION_FILE_PATH = "adbc.netezza.reader_file_path"
 # ----------------------------------------------------------
 # Functions
 
+def check_support(
+    data: Union[pyarrow.RecordBatch, pyarrow.Table, pyarrow.RecordBatchReader], 
+    reader_file_path: str
+) -> bool:
+    """
+    Checks for support available on Neteza. Currently supporting ingestion of 
+    structured table data.
+
+    Parameters
+    ----------
+    data
+        The Arrow data to for the file to insert . 
+        This can be a pyarrow RecordBatch, Table or RecordBatchReader, or any Arrow-compatible data that implements
+        the Arrow PyCapsule Protocol (i.e. has an ``__arrow_c_array__``
+        or ``__arrow_c_stream__`` method).
+    reader_file_path
+        Netezza specific parameter for adbc_ingest to provide the path
+        of the file tryng to ingest
+    """
+    return isinstance(data, pyarrow.Table) and reader_file_path.split('.')[1] in ingest_supported_file_formats
 
 def connect(
     uri: str,
@@ -218,6 +239,8 @@ class NetezzaCursor(Cursor):
         This is an extension and not part of the DBAPI standard.
 
         """
+        if not check_support(data, reader_file_path):
+            raise ValueError("Not supported on Netezza yet..")
         if mode == "append":
             c_mode = _lib.INGEST_OPTION_MODE_APPEND
         elif mode == "create":

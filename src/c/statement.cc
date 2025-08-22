@@ -1099,7 +1099,7 @@ AdbcStatusCode NetezzaStatement::CreateBulkTable(
       // Nothing to do
       break;
     case IngestMode::kReplace: {
-      std::string drop = "DROP TABLE IF EXISTS " + *escaped_table;
+      std::string drop = "DROP TABLE " + *escaped_table + " IF EXISTS";
       PGresult* result = PQexecParams(conn, drop.c_str(), /*nParams=*/0,
                                       /*paramTypes=*/nullptr, /*paramValues=*/nullptr,
                                       /*paramLengths=*/nullptr, /*paramFormats=*/nullptr,
