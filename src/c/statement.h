@@ -34,6 +34,8 @@
   "adbc.netezza.batch_size_hint_bytes"
 #define ADBC_INGEST_OPTION_TARGET_FILE_PATH \
   "adbc.netezza.reader_file_path"
+#define ADBC_INGEST_OPTION_TARGET_ET_OPTIONS \
+  "adbc.netezza.reader_et_options"
 
 namespace adbcpq {
 class NetezzaConnection;
@@ -166,6 +168,7 @@ class NetezzaStatement {
     IngestMode mode = IngestMode::kCreate;
     bool temporary = false;
     std::string target_file_path;
+    std::string target_et_options;
   } ingest_;
 
   TupleReader reader_;

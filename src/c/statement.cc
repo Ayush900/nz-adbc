@@ -1395,11 +1395,16 @@ AdbcStatusCode NetezzaStatement::ExecuteUpdateBulk(int64_t* rows_affected,
   RAISE_ADBC(bind_stream.SetParamTypes(*type_resolver_, error));
 
   char* escaped_target_file_path = (char*) ingest_.target_file_path.c_str();
+  char* escaped_target_et_options = (char*) ingest_.target_et_options.c_str();
+
   std::string query = "INSERT INTO ";
   query += escaped_table;
   query += " SELECT * FROM EXTERNAL '";
   query += escaped_target_file_path;
-  query += "' USING (REMOTESOURCE 'python' delim ',' MaxErrors 0 SkipRows 1)";
+  query += "' USING (REMOTESOURCE 'python' ";
+  query += escaped_target_et_options;
+  query += ")";
+  std::cout<<"The final query created is : "<<query<<std::endl;
 
   PGresult* result = PQexec(connection_->conn(), query.c_str());
   if (PQresultStatus(result) != PGRES_COMMAND_OK) {
@@ -1454,6 +1459,8 @@ AdbcStatusCode NetezzaStatement::GetOption(const char* key, char* value, size_t*
     result = ingest_.db_schema;
   } else if (std::strcmp(key, ADBC_INGEST_OPTION_TARGET_FILE_PATH) == 0) {
     result = ingest_.target_file_path;
+  } else if (std::strcmp(key, ADBC_INGEST_OPTION_TARGET_ET_OPTIONS) == 0) {
+    result = ingest_.target_et_options;
   } else if (std::strcmp(key, ADBC_INGEST_OPTION_MODE) == 0) {
     switch (ingest_.mode) {
       case IngestMode::kCreate:
@@ -1537,6 +1544,7 @@ AdbcStatusCode NetezzaStatement::SetSqlQuery(const char* query,
   ingest_.target.clear();
   ingest_.db_schema.clear();
   ingest_.target_file_path.clear();
+  ingest_.target_et_options.clear();
   query_ = query;
   prepared_ = false;
   return ADBC_STATUS_OK;
@@ -1594,6 +1602,10 @@ AdbcStatusCode NetezzaStatement::SetOption(const char* key, const char* value,
   } else if (std::strcmp(key, ADBC_INGEST_OPTION_TARGET_FILE_PATH) == 0) {
       query_.clear();
       ingest_.target_file_path = value;
+      prepared_ = false;
+  } else if (std::strcmp(key, ADBC_INGEST_OPTION_TARGET_ET_OPTIONS) == 0) {
+      query_.clear();
+      ingest_.target_et_options = value;
       prepared_ = false;
   } else {
     SetError(error, "[libpq] Unknown statement option '%s'", key);

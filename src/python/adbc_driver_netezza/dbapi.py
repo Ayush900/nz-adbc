@@ -113,6 +113,7 @@ ROWID = adbc_driver_manager.dbapi.ROWID
 
 INGEST_OPTION_TARGET_FILE_PATH: str
 ADBC_NETEZZA_OPTION_FILE_PATH = "adbc.netezza.reader_file_path"
+ADBC_NETEZZA_OPTION_ET_OPTIONS = "adbc.netezza.reader_et_options"
 # ----------------------------------------------------------
 # Functions
 
@@ -189,7 +190,8 @@ class NetezzaCursor(Cursor):
         catalog_name: Optional[str] = None,
         db_schema_name: Optional[str] = None,
         temporary: bool = False,
-        reader_file_path: str = None
+        reader_file_path: str = None,
+        reader_et_options: dict = {}
     ) -> int:
         """Ingest CSV data into a database table.
 
@@ -252,10 +254,13 @@ class NetezzaCursor(Cursor):
         else:
             raise ValueError(f"Invalid value for 'mode': {mode}")
 
+        reader_et_options = " ".join([f"{key} {reader_et_options[key]}" for key in reader_et_options])
+
         options = {
             _lib.INGEST_OPTION_TARGET_TABLE: table_name,
             _lib.INGEST_OPTION_MODE: c_mode,
-            "adbc.netezza.reader_file_path" : reader_file_path
+            ADBC_NETEZZA_OPTION_FILE_PATH : reader_file_path,
+            ADBC_NETEZZA_OPTION_ET_OPTIONS : reader_et_options
         }
         if catalog_name is not None:
             options[
