@@ -1404,7 +1404,6 @@ AdbcStatusCode NetezzaStatement::ExecuteUpdateBulk(int64_t* rows_affected,
   query += "' USING (REMOTESOURCE 'python' ";
   query += escaped_target_et_options;
   query += ")";
-  std::cout<<"The final query created is : "<<query<<std::endl;
 
   PGresult* result = PQexec(connection_->conn(), query.c_str());
   if (PQresultStatus(result) != PGRES_COMMAND_OK) {
