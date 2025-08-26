@@ -229,6 +229,12 @@ class NetezzaCursor(Cursor):
             Netezza specific parameter for adbc_ingest to provide the path
             of the file tryng to ingest
             **This API is EXPERIMENTAL.**
+        reader_et_options
+            Netezza specific parameter which can be used to specify the parameters
+            for etxernal table parameters as a dictionary
+            The options can be discovered from :
+            https://www.ibm.com/docs/en/netezza?topic=eto-option-summary
+            **This API is EXPERIMENTAL.**
 
         Returns
         -------
