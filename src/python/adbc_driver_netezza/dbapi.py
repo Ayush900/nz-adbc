@@ -23,6 +23,10 @@ from adbc_driver_manager.dbapi import Cursor, Connection
 
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
+from pathlib import Path
+
+import tempfile
+
 try:
     import pyarrow
 except ImportError as e:
@@ -247,6 +251,17 @@ class NetezzaCursor(Cursor):
         This is an extension and not part of the DBAPI standard.
 
         """
+        # Check if pyarrow table instance is provided, if yes then create a temp path
+        # and set default reader_et_options
+        if isinstance(data, pyarrow.Table) and reader_file_path is None:
+            tempdir = tempfile.TemporaryDirectory(
+                prefix="adbc-docs-",
+                ignore_cleanup_errors=True,
+            )
+            root = Path(tempdir.name)
+            reader_file_path = str(root / "example.csv")
+            pyarrow.csv.write_csv(data, reader_file_path)
+            reader_et_options = {"delim" : "','", "MaxErrors":0, "SkipRows":1}
         if not check_support(data, reader_file_path):
             raise ValueError("Not supported on Netezza yet..")
         if mode == "append":
