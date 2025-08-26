@@ -19,7 +19,7 @@
 DBAPI 2.0-compatible facade for the ADBC libpq driver.
 """
 
-from adbc_driver_manager.dbapi import Cursor, Connection
+from adbc_driver_manager.dbapi import Cursor, Connection, _RowIterator
 
 from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
@@ -82,7 +82,6 @@ __all__ = [
 # ----------------------------------------------------------
 # Globals
 
-ingest_supported_file_formats = ['csv', 'dat', 'tbl', 'out']
 apilevel = adbc_driver_manager.dbapi.apilevel
 threadsafety = adbc_driver_manager.dbapi.threadsafety
 # XXX: PostgreSQL doesn't fit any of the param styles
@@ -120,27 +119,6 @@ ADBC_NETEZZA_OPTION_FILE_PATH = "adbc.netezza.reader_file_path"
 ADBC_NETEZZA_OPTION_ET_OPTIONS = "adbc.netezza.reader_et_options"
 # ----------------------------------------------------------
 # Functions
-
-def check_support(
-    data: Union[pyarrow.RecordBatch, pyarrow.Table, pyarrow.RecordBatchReader], 
-    reader_file_path: str
-) -> bool:
-    """
-    Checks for support available on Neteza. Currently supporting ingestion of 
-    structured table data.
-
-    Parameters
-    ----------
-    data
-        The Arrow data to for the file to insert . 
-        This can be a pyarrow RecordBatch, Table or RecordBatchReader, or any Arrow-compatible data that implements
-        the Arrow PyCapsule Protocol (i.e. has an ``__arrow_c_array__``
-        or ``__arrow_c_stream__`` method).
-    reader_file_path
-        Netezza specific parameter for adbc_ingest to provide the path
-        of the file tryng to ingest
-    """
-    return isinstance(data, pyarrow.Table) and reader_file_path.split('.')[1] in ingest_supported_file_formats
 
 def connect(
     uri: str,
@@ -185,6 +163,42 @@ class NetezzaConnection(Connection):
         return NetezzaCursor(self)
 
 class NetezzaCursor(Cursor):
+    def __init__(self, conn: NetezzaConnection):
+        # Must be at top in case __init__ is interrupted and then __del__ is called
+        self._closed = True
+        self._conn = conn
+        self._stmt = _lib.AdbcStatement(conn._conn)
+        self._closed = False
+
+        self._last_query: Optional[Union[str, bytes]] = None
+        self._results: Optional["_RowIterator"] = None
+        self._arraysize = 1
+        self._rowcount = -1
+        self.ingest_supported_file_formats = ['csv', 'dat', 'tbl', 'out']
+        self.is_temp_dir_created = False
+
+    def check_support(
+            self,
+            data: Union[pyarrow.RecordBatch, pyarrow.Table, pyarrow.RecordBatchReader], 
+            reader_file_path: str
+        ) -> bool:
+        """
+        Checks for support available on Neteza. Currently supporting ingestion of 
+        structured table data.
+
+        Parameters
+        ----------
+        data
+            The Arrow data to for the file to insert . 
+            This can be a pyarrow RecordBatch, Table or RecordBatchReader, or any Arrow-compatible data that implements
+            the Arrow PyCapsule Protocol (i.e. has an ``__arrow_c_array__``
+            or ``__arrow_c_stream__`` method).
+        reader_file_path
+            Netezza specific parameter for adbc_ingest to provide the path
+            of the file tryng to ingest
+        """
+        return isinstance(data, pyarrow.Table) and reader_file_path.split('.')[1] in self.ingest_supported_file_formats
+
     def adbc_ingest(
         self,
         table_name: str,
@@ -262,7 +276,8 @@ class NetezzaCursor(Cursor):
             reader_file_path = str(root / "example.csv")
             pyarrow.csv.write_csv(data, reader_file_path)
             reader_et_options = {"delim" : "','", "MaxErrors":0, "SkipRows":1}
-        if not check_support(data, reader_file_path):
+            self.is_temp_dir_created = True
+        if not self.check_support(data, reader_file_path):
             raise ValueError("Not supported on Netezza yet..")
         if mode == "append":
             c_mode = _lib.INGEST_OPTION_MODE_APPEND
@@ -334,7 +349,10 @@ class NetezzaCursor(Cursor):
             self._stmt.bind_stream(handle)
 
         self._last_query = None
-        return _blocking_call(self._stmt.execute_update, (), {}, self._stmt.cancel)
+        result = _blocking_call(self._stmt.execute_update, (), {}, self._stmt.cancel)
+        if self.is_temp_dir_created:
+            tempdir.cleanup()
+        return result
 
 Connection = NetezzaConnection
 Cursor = NetezzaCursor
