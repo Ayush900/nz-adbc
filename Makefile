@@ -1,3 +1,5 @@
+SHELL := /bin/bash
+
 BUILD_DIR = WithMakeBuild
 
 DEBUG = 1
@@ -51,18 +53,40 @@ C_TARBALL_NAME = adbc_driver_netezza.tgz
 CPPFLAGS = -I $(ARRAOW_ADBC_DIR) -I $(ARRAOW_ADBC_DRIVER_DIR) -I $(ARRAOW_ADBC_VENDOR_DIR) \
 -I $(NETEZZA_DRIVER_SOURCE_DIR) -I $(NETEZZA_DRIVER_INCLUDE_DIR)
 
-all: create_build_dir copy_netezza_driver_lib create_test_dir update_symbols_map_file update_cmakelists_txt_file \
-run_cmake_adbc build_netezza build_nzpyadbc make_c_tarball remove_text_added
+.ONESHELL:
 
-compile_without_tests: create_build_dir copy_netezza_driver_lib run_cmake_adbc_without_tests build_netezza \
-build_nzpyadbc make_c_tarball
+define setup_trap
+	trap 'echo "Error or interruption detected. Running cleanup..."; $(MAKE) clean; exit 1' ERR INT TERM
+endef
+
+all:
+	@$(setup_trap)
+	$(MAKE) create_build_dir
+	$(MAKE) copy_netezza_driver_lib
+	$(MAKE) create_test_dir
+	$(MAKE) update_symbols_map_file
+	$(MAKE) update_cmakelists_txt_file
+	$(MAKE) run_cmake_adbc
+	$(MAKE) build_netezza
+	$(MAKE) build_nzpyadbc
+	$(MAKE) make_c_tarball
+	$(MAKE) remove_text_added
+
+compile_without_tests:
+	@$(setup_trap)
+	$(MAKE) create_build_dir
+	$(MAKE) copy_netezza_driver_lib
+	$(MAKE) run_cmake_adbc_without_tests
+	$(MAKE) build_netezza
+	$(MAKE) build_nzpyadbc
+	$(MAKE) make_c_tarball
 
 update_symbols_map_file:
-		sed -i '/SqliteDriverInit;/a \
-			NetezzaDriverInit;' $(ARRAOW_ADBC_DIR)/c/symbols.map
+	sed -i '/SqliteDriverInit;/a \
+		NetezzaDriverInit;' $(ARRAOW_ADBC_DIR)/c/symbols.map
 
 update_cmakelists_txt_file:
-		sed -i '/config_summary_message()/a \
+	sed -i '/config_summary_message()/a \
 if(ADBC_DRIVER_NETEZZA) \
   add_subdirectory(driver/netezza) \
 endif()' $(ARRAOW_ADBC_DIR)/c/CMakeLists.txt
@@ -122,8 +146,18 @@ create_build_dir:
 	+@[ -d $(BUILD_DIR) ] || mkdir -p $(BUILD_DIR)
 
 remove_text_added:
-	sed -i 's/NetezzaDriverInit;//' $(ARRAOW_ADBC_DIR)/c/symbols.map
-	head -n -3 $(ARRAOW_ADBC_DIR)/c/CMakeLists.txt > temp && mv temp $(ARRAOW_ADBC_DIR)/c/CMakeLists.txt
+	# Remove text added from update_symbols_map_file operation
+	@if grep -q "NetezzaDriverInit" $(ARRAOW_ADBC_DIR)/c/symbols.map; then \
+		echo "String ' NetezzaDriverInit' found in $(ARRAOW_ADBC_DIR)/c/symbols.map"; \
+		echo "Reverting symbols.map..."; \
+		sed -i 's/NetezzaDriverInit;//' $(ARRAOW_ADBC_DIR)/c/symbols.map; \
+	fi
+	# Remove text added from update_cmakelists_txt_file operation
+	@if grep -q 'if(ADBC_DRIVER_NETEZZA)' $(ARRAOW_ADBC_DIR)/c/CMakeLists.txt; then \
+	  echo "----- Removing ADBC_DRIVER_NETEZZA block... ------"; \
+	  sed -i '/^if(ADBC_DRIVER_NETEZZA)/,/^endif()/d' $(ARRAOW_ADBC_DIR)/c/CMakeLists.txt; \
+	  echo "----- Removed successfully ... ------"; \
+	fi
 
 clean:
 	@rm -rf $(COMPILER_OBJECT) $(ADBC_DRIVER_NETEZZA_LIB)
@@ -132,3 +166,4 @@ clean:
 	@rm -rf $(NZPYADBC_DIR)/dist $(NZPYADBC_DIR)/adbc_driver_netezza.egg-info $(NZPYADBC_DIR)/adbc_driver_netezza/__pycache__
 	@rm -rf $(NZPYADBC_DIR)/adbc_driver_netezza/$(ADBC_DRIVER_NETEZZA_LIB) $(NZPYADBC_DIR)/adbc_driver_netezza/$(NETEZZA_DRIVER_LIB)
 	@rm -rf $(ARRAOW_ADBC_DRIVER_DIR)/netezza
+	$(MAKE) remove_text_added
