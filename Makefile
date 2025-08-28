@@ -148,15 +148,14 @@ create_build_dir:
 remove_text_added:
 	# Remove text added from update_symbols_map_file operation
 	@if grep -q "NetezzaDriverInit" $(ARRAOW_ADBC_DIR)/c/symbols.map; then \
-		echo "String ' NetezzaDriverInit' found in $(ARRAOW_ADBC_DIR)/c/symbols.map"; \
-		echo "Reverting symbols.map..."; \
+		echo "Reverting symbols.map file"; \
 		sed -i 's/NetezzaDriverInit;//' $(ARRAOW_ADBC_DIR)/c/symbols.map; \
 	fi
 	# Remove text added from update_cmakelists_txt_file operation
 	@if grep -q 'if(ADBC_DRIVER_NETEZZA)' $(ARRAOW_ADBC_DIR)/c/CMakeLists.txt; then \
-	  echo "----- Removing ADBC_DRIVER_NETEZZA block... ------"; \
+	  echo "Removing ADBC_DRIVER_NETEZZA block"; \
 	  sed -i '/^if(ADBC_DRIVER_NETEZZA)/,/^endif()/d' $(ARRAOW_ADBC_DIR)/c/CMakeLists.txt; \
-	  echo "----- Removed successfully ... ------"; \
+	  echo "Removed successfully."; \
 	fi
 
 clean:
